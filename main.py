@@ -1,34 +1,32 @@
 import os
-import glob
-from src.generate import generate_csvs
-from src.process import load_csv, add_high_amount_flag, calculate_sums
-from src.db import init_db, insert_with_retry
+from src.generate import generate_single_csv_with_error
+from src.process import load_csv, apply_business_rules, aggregate_data
+from src.db import init_db, insert_transactions_with_retry
 
-def run_pipeline():
-    print("--- 1. Génération des données ---")
-    generate_csvs(output_dir="data", num_files=2)
-
-    print("\n--- 2. Initialisation de la base de données ---")
-    db_path = "pipeline.db"
-    init_db(db_path)
-
-    print("\n--- 3. Chargement, traitement et insertion ---")
-    csv_files = glob.glob("data/*.csv")
+def run_pipeline(simulate_fail=False):
+    # 1. Initialisation de la base de données
+    init_db()
+    data_dir = "data"
+    filename = "transactions.csv"
+    file_path = os.path.join(data_dir, filename)
     
-    for filepath in csv_files:
-        filename = os.path.basename(filepath)
-        df = load_csv(filepath)
-        
-        # Traitement
-        df_flagged = add_high_amount_flag(df)
-        sums = calculate_sums(df_flagged)
-        
-        print(f"\nRésultats des sommes pour {filename}:")
-        for categorie, valeurs in sums.items():
-            print(f"  {categorie}: {valeurs}")
-        
-        # Insertion
-        insert_with_retry(db_path, df_flagged, filename)
+    # 2. Génération du fichier CSV unique (incluant la 4ème ligne erronée)
+    generate_single_csv_with_error(output_dir=data_dir, filename=filename)
+    
+    # 3. Chargement des données
+    print(f"\nTraitement du fichier : {file_path} ...")
+    raw_data = load_csv(file_path)
+    
+    # 4. Traitement (le Data Quality Check dans apply_business_rules ignorera l'erreur)
+    processed_data = apply_business_rules(raw_data)
+    
+    # 5. Calcul des agrégations sur les données valides
+    aggregations = aggregate_data(processed_data)
+    print("Résultats des agrégations :", aggregations)
+    
+    # 6. Insertion en base avec mécanisme de retry (Étape 7)
+    insert_transactions_with_retry(processed_data, file_path, simulate_fail=simulate_fail)
 
 if __name__ == "__main__":
-    run_pipeline()
+    # Passer simulate_fail=True pour tester le mécanisme de retry de l'étape 7
+    run_pipeline(simulate_fail=False)
