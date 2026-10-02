@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Exécution des tests d'intégration
-        run: pytest tests/ -v
+        run: pytest -m tests/ -v
 
       - name: Exécution de la pipeline complète
         run: python main.py
