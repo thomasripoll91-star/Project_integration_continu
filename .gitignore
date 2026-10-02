@@ -1,0 +1,17 @@
+# Bases de données locales
+*.db
+*.sqlite
+*.sqlite3
+
+# Dossier des données générées
+data/
+
+# Fichiers de cache Python et de tests
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environnements virtuels
+venv/
+env/
+.venv/
