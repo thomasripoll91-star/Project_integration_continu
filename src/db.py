@@ -14,29 +14,43 @@ def init_db(db_path="pipeline.db"):
     conn.close()
 
 def insert_with_retry(db_path: str, df: pd.DataFrame, filename: str, max_retries: int = 3):
+    # - définir un nombre maximal de tentatives (max_retries = 3)
+    # - effectuer plusieurs tentatives (boucle for)
     for attempt in range(max_retries):
         try:
+            # SIMULATION DU PROBLÈME TEMPORAIRE (Échoue à la tentative 0, réussit ensuite)
+            if attempt == 0:
+                raise sqlite3.OperationalError("Erreur simulée : Base de données temporairement inaccessible")
+
             conn = sqlite3.connect(db_path, timeout=5)
             cursor = conn.cursor()
             
-            # Vérification de déduplication
+            # Éviter les doublons
             cursor.execute("SELECT 1 FROM processed_files WHERE filename = ?", (filename,))
             if cursor.fetchone():
-                print(f"[{filename}] Déjà traité. Ignoré.")
+                print(f"[{filename}] Fichier déjà traité. Ignoré.")
                 conn.close()
                 return True
 
-            # Insertion des données et marquage du fichier
             df.to_sql("transactions", conn, if_exists="append", index=False)
             cursor.execute("INSERT INTO processed_files (filename) VALUES (?)", (filename,))
             
             conn.commit()
-            print(f"[{filename}] Insertion en base réussie.")
+            print(f"[{filename}] Insertion réussie à la tentative {attempt + 1}.")
             conn.close()
             return True
             
+        # - détecter l’échec
         except sqlite3.Error as e:
-            print(f"[{filename}] Erreur d'insertion (Tentative {attempt + 1}/{max_retries}) : {e}")
+            # - afficher clairement les erreurs rencontrées
+            print(f"[{filename}] Échec (Tentative {attempt + 1}/{max_retries}) : {e}")
+            
             if attempt == max_retries - 1:
-                raise Exception(f"Échec définitif pour {filename} après {max_retries} tentatives.")
-            time.sleep(2 ** attempt) 
+                # - arrêter la pipeline si le nombre maximal est dépassé
+                print(f"[{filename}] Nombre maximal de tentatives atteint. Arrêt de la pipeline.")
+                raise Exception(f"Arrêt critique : impossible d'insérer le fichier {filename}.")
+            
+            # - attendre avant une nouvelle tentative
+            attente = 2 ** attempt  # Attente exponentielle : 1s, 2s...
+            print(f"[{filename}] Nouvelle tentative dans {attente} seconde(s)...")
+            time.sleep(attente)
