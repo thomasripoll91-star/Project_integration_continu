@@ -10,6 +10,7 @@ def generate_csvs(output_dir="data", num_files=2):
         ["2023-10-01 10:30:00", "IT111", "Italie", "UniCredit", "DE456", "Allemagne", 500.00],
         ["2023-10-01 11:00:00", "FR999", "France", "Societe Generale", "FR123", "France", 100.00],
         ["2023-10-01 11:30:00", "FR123", "France", "BNP", "IT111", "Italie", 200.00],
+        ["2023-10-01 11:50:00", "FR123", "France", "BNP", "IT111", "Italie", "erreur"],
     ]
 
     columns = ["datetime_transaction", "iban_origine", "pays_source", "banque_source", 
