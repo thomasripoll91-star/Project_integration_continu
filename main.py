@@ -1,5 +1,5 @@
 import os
-from src.generate import generate_single_csv_with_error
+from src.generate import generate_csv
 from src.process import load_csv, apply_business_rules, aggregate_data
 from src.db import init_db, insert_transactions_with_retry
 
@@ -11,7 +11,7 @@ def run_pipeline(simulate_fail=False):
     file_path = os.path.join(data_dir, filename)
     
     # 2. Génération du fichier CSV unique (incluant la 4ème ligne erronée)
-    generate_single_csv_with_error(output_dir=data_dir, filename=filename)
+    generate_csv(output_dir=data_dir, filename=filename)
     
     # 3. Chargement des données
     print(f"\nTraitement du fichier : {file_path} ...")
